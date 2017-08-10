@@ -193,12 +193,32 @@ void receive_task(void *pvArgs) {
   				ok_to_send = 0;
   			}
   			while (ok_to_send == 255) {
+
   				int m;
   				for (m = 1; m < 11; m = m + 1){
   				hcan.pTxMsg->Data[0] = 00;
   				hcan.pTxMsg->Data[1] = m;
   				hcan.pTxMsg->Data[2] = 0x01;
   				hcan.pTxMsg->Data[3] = m;
+
+  				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+  		  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 5) != HAL_OK) { //Try to receive
+
+  		  			HAL_UART_Transmit(&huart1, (uint8_t *)"Receiving error", strlen("Receiving error"), HAL_MAX_DELAY);
+  		  			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+
+  		  		} else {
+  	  			data_holder = hcan.pRxMsg->Data[0];
+  	  			//char buff[20];
+  	  			if(data_holder == 255){
+  	  				ok_to_send = 255;
+  	  			}
+  	  			else if( data_holder == 0xAA){
+  	  				ok_to_send = 0;
+  	  				break;
+  	  			}
+  				//vTaskDelay(pdMS_TO_TICKS(100));
+  		  		}
 
   				TransmitReturn = HAL_CAN_Transmit(&hcan, 5); //Try to transmit and get result
 
@@ -223,23 +243,7 @@ void receive_task(void *pvArgs) {
 
   				}
   				HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-  				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-  		  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 5) != HAL_OK) { //Try to receive
 
-  		  			HAL_UART_Transmit(&huart1, (uint8_t *)"Receiving error", strlen("Receiving error"), HAL_MAX_DELAY);
-  		  			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-
-  		  		} else {
-  	  			data_holder = hcan.pRxMsg->Data[0];
-  	  			//char buff[20];
-  	  			if(data_holder == 255){
-  	  				ok_to_send = 255;
-  	  			}
-  	  			else if( data_holder == 0xAA){
-  	  				ok_to_send = 0;
-  	  			}
-  				//vTaskDelay(pdMS_TO_TICKS(100));
-  		  		}
   				}
 
   			}
@@ -368,20 +372,22 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x021;
+  hcan.pTxMsg->StdId = 0x064;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 4;//1-9
 
+  int filter_id = 0x00000064;
+  int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
   sFilterConfig.FilterNumber = 0;
   sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
   sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-  sFilterConfig.FilterIdHigh = 0x0000;
-  sFilterConfig.FilterIdLow = 0x0000;
-  sFilterConfig.FilterMaskIdHigh = 0x0000;
-  sFilterConfig.FilterMaskIdLow = 0x0000;
+  sFilterConfig.FilterIdHigh = ((filter_id << 5)  | (filter_id >> (32 - 5))) & 0xFFFF; // STID[10:0] & EXTID[17:13]
+  sFilterConfig.FilterIdLow = (filter_id >> (11 - 3)) & 0xFFF8; // EXID[12:5] & 3 Reserved bits
+  sFilterConfig.FilterMaskIdHigh = ((filter_mask << 5)  | (filter_mask >> (32 - 5))) & 0xFFFF;
+  sFilterConfig.FilterMaskIdLow = (filter_mask >> (11 - 3)) & 0xFFF8;
   sFilterConfig.FilterFIFOAssignment = 0;
   sFilterConfig.FilterActivation = ENABLE;
   sFilterConfig.BankNumber = 14;
