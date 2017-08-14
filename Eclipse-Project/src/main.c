@@ -429,7 +429,7 @@ void receive_task(void *pvArgs) {
 	for(;;) {
 
 		HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 100) != HAL_OK) { //Try to receive
+  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 1000) != HAL_OK) { //Try to receive
 
   			HAL_UART_Transmit(&huart1, (uint8_t *)"Receiving error!!", strlen("Receiving error!!"), HAL_MAX_DELAY);
   			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
@@ -454,7 +454,7 @@ void receive_task(void *pvArgs) {
   				hcan.pTxMsg->Data[3] = m;
 
   				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-  		  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 10) != HAL_OK) { //Try to receive
+  		  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 5) != HAL_OK) { //Try to receive
 
   		  			HAL_UART_Transmit(&huart1, (uint8_t *)"Receiving error", strlen("Receiving error"), HAL_MAX_DELAY);
   		  			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
@@ -472,7 +472,7 @@ void receive_task(void *pvArgs) {
   				//vTaskDelay(pdMS_TO_TICKS(100));
   		  		}
 
-  				TransmitReturn = HAL_CAN_Transmit(&hcan, 10); //Try to transmit and get result
+  				TransmitReturn = HAL_CAN_Transmit(&hcan, 5); //Try to transmit and get result
 
   				if (TransmitReturn == HAL_ERROR) { //We got an error
   				  	/* Transmitting Error */
