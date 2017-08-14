@@ -145,11 +145,11 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_SPI1_Init(void);   /// From Temp Code
-static GPIO_InitTypeDef  GPIO_InitStruct; /// From Temp Code
+//static GPIO_InitTypeDef  GPIO_InitStruct; /// From Temp Code
 
 void receive_task(void *pvArgs);
 void send_task(void *pvArgs);
-void Read_Temperature(void *pvArgs); /// From Temp Code
+//void Read_Temperature(void *pvArgs); /// From Temp Code
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -186,7 +186,7 @@ int main(void)
 
   /* -1- Enable GPIO Clock (to be able to program the configuration registers) */
   /// From Temp Code
-   LEDred_GPIO_CLK_ENABLE();
+  // LEDred_GPIO_CLK_ENABLE();
    /// From Temp Code
 
   /* USER CODE BEGIN SysInit */
@@ -203,28 +203,28 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   ///// From Temp Code
-  /* -2- Configure IO in output push-pull mode to drive external LEDs */
-    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull  = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    /* USER CODE BEGIN 2 */
-
-  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\rConfigure SPI2", strlen("\n\rConfigure SPI2"), HAL_MAX_DELAY);
-
-  for(int conf=0;conf< 10;conf++)
-  	{
-  	configureSPI(CS_GPIO_Port[conf],CS_Pin[conf]);
-  	//HAL_Delay(50);
-
-  	}
-  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\rConfiguration done\n\r", strlen("\n\rConfiguration done\n\r"), HAL_MAX_DELAY);
-
-  	// give the sensor time to set up
-    	HAL_SPI_Transmit(&hspi1, lightAllLeds, 28, 10);
-    	HAL_Delay(1000);
+//  /* -2- Configure IO in output push-pull mode to drive external LEDs */
+//    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+//    GPIO_InitStruct.Pull  = GPIO_PULLUP;
+//    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+//
+//    GPIO_InitStruct.Pin = GPIO_PIN_0;
+//    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+//    /* USER CODE BEGIN 2 */
+//
+//  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\rConfigure SPI2", strlen("\n\rConfigure SPI2"), HAL_MAX_DELAY);
+//
+//  for(int conf=0;conf< 10;conf++)
+//  	{
+//  	configureSPI(CS_GPIO_Port[conf],CS_Pin[conf]);
+//  	//HAL_Delay(50);
+//
+//  	}
+//  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\rConfiguration done\n\r", strlen("\n\rConfiguration done\n\r"), HAL_MAX_DELAY);
+//
+//  	// give the sensor time to set up
+//    	HAL_SPI_Transmit(&hspi1, lightAllLeds, 28, 10);
+//    	HAL_Delay(1000);
 
  /// From TempCode
 
