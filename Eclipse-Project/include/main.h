@@ -78,6 +78,8 @@
 #define CS6_GPIO_Port GPIOB
 #define CS10_Pin GPIO_PIN_5
 #define CS10_GPIO_Port GPIOB
+#define NCS12_Pin GPIO_PIN_12
+#define NCS12_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

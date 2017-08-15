@@ -62,8 +62,20 @@ SPI_HandleTypeDef hspi2;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
+/* SPI TIMEOUT Value*/
+#define TIMEOUT_VAL 60
+
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+void CS_ENABLE(GPIO_TypeDef* CS_GPIO_Port, uint16_t CS_Pin)
+{
+  HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
+}
+
+void CS_DISABLE(GPIO_TypeDef* CS_GPIO_Port, uint16_t CS_Pin)
+{
+  HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
+}
 
 /* USER CODE END PV */
 
@@ -77,6 +89,7 @@ static void MX_SPI2_Init(void);
 
 void receive_task(void *pvArgs);
 void send_task(void *pvArgs);
+void digitalread_task(void *pvArgs);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -120,7 +133,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
-  xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
+ // xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
+  xTaskCreate(digitalread_task, "DigitalRead task", 128, NULL, 1, NULL);
  // xTaskCreate(send_task, "Sender task", 128, NULL, 1, NULL);
 
   /* USER CODE END 2 */
@@ -165,6 +179,12 @@ int main(void)
   }
   /* USER CODE END 3 */
 
+}
+
+void digitalread_task(void *pvArgs){
+	for(;;){
+
+	}
 }
 
 void receive_task(void *pvArgs) {
@@ -299,6 +319,29 @@ void send_task(void *pvArgs) {
 	}
 }
 
+
+uint16_t maxim_spi_16bit_transfer(uint16_t u_mosi)
+	/**
+* \brief				SPI 16-bit transfer
+*
+* \param[in]		u_mosi: SPI transmit data
+*
+* \retval				SPI receive data
+*/
+{
+	uint16_t u_miso;
+	CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+	//SPI_I2S_SendData(SPI2, u_mosi);
+	HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
+	/* Wait for SPI2 data reception */
+	//while (SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_RXNE) == RESET);
+	HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
+	//u_miso=SPI_I2S_ReceiveData(SPI2);
+	CS_DISABLE(GPIOB, NCS12_Pin);	//NCS = 1
+	return u_miso;
+}
+
+
 /** System Clock Configuration
 */
 void SystemClock_Config(void)
@@ -406,15 +449,15 @@ static void MX_SPI2_Init(void)
   hspi2.Instance = SPI2;
   hspi2.Init.Mode = SPI_MODE_MASTER;
   hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.DataSize = SPI_DATASIZE_16BIT;
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 10;
+  hspi2.Init.CRCPolynomial = 7;
   if (HAL_SPI_Init(&hspi2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -499,9 +542,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CS1_Pin CS6_Pin */
-  GPIO_InitStruct.Pin = CS1_Pin|CS6_Pin;
+  GPIO_InitStruct.Pin = CS1_Pin|CS6_Pin|NCS12_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CS5_Pin CS10_Pin */
