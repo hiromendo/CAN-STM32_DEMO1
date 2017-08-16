@@ -79,6 +79,11 @@ void CS_DISABLE(GPIO_TypeDef* CS_GPIO_Port, uint16_t CS_Pin)
   HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
 }
 
+/* Queue Handles -------------------------------------------------------------*/
+xQueueHandle Global_Queue_Data = 0;
+uint8_t Data_receive_h;
+uint8_t Data_receive_l;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -132,6 +137,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_SPI2_Init();
 
+  Global_Queue_Data = xQueueCreate(2,sizeof(uint8_t));
   /* USER CODE BEGIN 2 */
 
 
@@ -221,10 +227,25 @@ void digitalread_task(void *pvArgs){
 		CS_DISABLE(GPIOB, NCS12_Pin);
 		u_byte_h = u_miso>>24;
 		u_byte_l = u_miso>>8;
-		sprintf(Byte, "\n\rByteH = %x\n\r", u_byte_h);
-        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
-        sprintf(Byte, "\n\rByteL = %x\n\r", u_byte_l);
-        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+
+		if(xQueueSend(Global_Queue_Data, &u_byte_h,200)){
+		   		HAL_UART_Transmit(&huart1, (uint8_t*)"DI_H in Queue\n\r", strlen("Temperature in Queue\n\r"), 0xFFFF);
+		  	 }
+		  	 else{
+		    		HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to add to Queue\n\r", strlen("Failed to add to Queue\n\r"), 0xFFFF);
+
+		  	 }
+		if(xQueueSend(Global_Queue_Data, &u_byte_l,200)){
+				   		HAL_UART_Transmit(&huart1, (uint8_t*)"DI_L in Queue\n\r", strlen("Temperature in Queue\n\r"), 0xFFFF);
+				  	 }
+				  	 else{
+				    		HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to add to Queue\n\r", strlen("Failed to add to Queue\n\r"), 0xFFFF);
+
+				  	 }
+		//sprintf(Byte, "\n\rByteH = %x\n\r", u_byte_h);
+        //HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+        //sprintf(Byte, "\n\rByteL = %x\n\r", u_byte_l);
+        //HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
 
 
 		//u_byte = u_miso;
@@ -264,12 +285,30 @@ void receive_task(void *pvArgs) {
   			}
   			while (ok_to_send == 255) {
 
-  				int m;
-  				for (m = 1; m < 11; m = m + 1){
-  				hcan.pTxMsg->Data[0] = 00;
-  				hcan.pTxMsg->Data[1] = m;
-  				hcan.pTxMsg->Data[2] = 0x01;
-  				hcan.pTxMsg->Data[3] = m;
+  				//int m;
+  				//for (m = 1; m < 2; m = m + 1){
+
+  					if(xQueueReceive(Global_Queue_Data, &Data_receive_h,200)){
+  						sprintf(Byte, "\n\rByteH = %x\n\r", Data_receive_h);
+  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+
+  							}
+  									 else{
+  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+
+  									  	 }
+  					if(xQueueReceive(Global_Queue_Data, &Data_receive_l,200)){
+  				        sprintf(Byte, "\n\rByteL = %x\n\r", Data_receive_l);
+  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+  					  							}
+  					  									 else{
+  					  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+
+  					  									  	 }
+  				hcan.pTxMsg->Data[0] = 01;
+  				hcan.pTxMsg->Data[1] = Data_receive_h;
+  				hcan.pTxMsg->Data[2] = Data_receive_l;
+  				//hcan.pTxMsg->Data[3] = m;
 
   				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
   		  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 5) != HAL_OK) { //Try to receive
@@ -316,7 +355,7 @@ void receive_task(void *pvArgs) {
 
   				}
 
-  			}
+  			//}
   			//sprintf(buff, "%i", data_holder);
   		//	HAL_UART_Transmit(&huart1, (uint8_t*)"Receiving: ", strlen("Receiving: "), HAL_MAX_DELAY);
   		//	HAL_UART_Transmit(&huart1, (uint8_t*)buff, strlen(buff), HAL_MAX_DELAY);
@@ -446,12 +485,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x064;
+  hcan.pTxMsg->StdId = 0x001;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
-  hcan.pTxMsg->DLC   = 4;//1-9
+  hcan.pTxMsg->DLC   = 3;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x00000064;
+  int filter_id = 0x00000001;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
