@@ -49,6 +49,7 @@
 #include "main.h"
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
+#include "string.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -64,6 +65,7 @@ UART_HandleTypeDef huart2;
 
 /* SPI TIMEOUT Value*/
 #define TIMEOUT_VAL 60
+char Byte[30]; //array to print RTD resistance
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -133,7 +135,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
- // xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
+  xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
   xTaskCreate(digitalread_task, "DigitalRead task", 128, NULL, 1, NULL);
  // xTaskCreate(send_task, "Sender task", 128, NULL, 1, NULL);
 
@@ -181,8 +183,56 @@ int main(void)
 
 }
 
+uint16_t maxim_spi_16bit_transfer(uint16_t u_mosi)
+	/**
+* \brief				SPI 16-bit transfer
+*
+* \param[in]		u_mosi: SPI transmit data
+*
+* \retval				SPI receive data
+*/
+{
+	uint16_t u_miso;
+	CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+	//SPI_I2S_SendData(SPI2, u_mosi);
+	HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
+	/* Wait for SPI2 data reception */
+	//while (SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_RXNE) == RESET);
+	HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
+	//u_miso=SPI_I2S_ReceiveData(SPI2);
+	CS_DISABLE(GPIOB, NCS12_Pin);	//NCS = 1
+	return u_miso;
+}
+
 void digitalread_task(void *pvArgs){
+	uint32_t u_miso;
+	uint8_t u_byte_h = 0;
+	uint8_t u_byte_l = 0;
+	uint8_t u_mosi = 0x00;
 	for(;;){
+
+		HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart1, (uint8_t *)"Hello", strlen("Hello"), HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+		//u_miso = maxim_spi_16bit_transfer(0x00);
+		CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+		//HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
+		HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
+		CS_DISABLE(GPIOB, NCS12_Pin);
+		u_byte_h = u_miso>>24;
+		u_byte_l = u_miso>>8;
+		sprintf(Byte, "\n\rByteH = %x\n\r", u_byte_h);
+        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+        sprintf(Byte, "\n\rByteL = %x\n\r", u_byte_l);
+        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+
+
+		//u_byte = u_miso;
+		//printf("0X%02X  <", u_byte);
+		//printf(BYTETOBINARYPATTERN, BYTETOBINARY(u_byte));
+
+		HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+		vTaskDelay(pdMS_TO_TICKS(500));
 
 	}
 }
@@ -320,26 +370,7 @@ void send_task(void *pvArgs) {
 }
 
 
-uint16_t maxim_spi_16bit_transfer(uint16_t u_mosi)
-	/**
-* \brief				SPI 16-bit transfer
-*
-* \param[in]		u_mosi: SPI transmit data
-*
-* \retval				SPI receive data
-*/
-{
-	uint16_t u_miso;
-	CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
-	//SPI_I2S_SendData(SPI2, u_mosi);
-	HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
-	/* Wait for SPI2 data reception */
-	//while (SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_RXNE) == RESET);
-	HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
-	//u_miso=SPI_I2S_ReceiveData(SPI2);
-	CS_DISABLE(GPIOB, NCS12_Pin);	//NCS = 1
-	return u_miso;
-}
+
 
 
 /** System Clock Configuration
@@ -453,11 +484,11 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 7;
+  hspi2.Init.CRCPolynomial = 10;
   if (HAL_SPI_Init(&hspi2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
