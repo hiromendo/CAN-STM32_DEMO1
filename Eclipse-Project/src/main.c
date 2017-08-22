@@ -202,6 +202,7 @@ int main(void)
   MX_SPI1_Init();   /// from Temp Code MX_SPI1_Init();
 
   /* USER CODE BEGIN 2 */
+<<<<<<< HEAD
   ///// From Temp Code
 //  /* -2- Configure IO in output push-pull mode to drive external LEDs */
 //    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
@@ -229,6 +230,12 @@ int main(void)
  /// From TempCode
 
   xTaskCreate(receive_task, "Receiver task", 128, NULL,1, NULL);
+=======
+
+
+  xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
+  //xTaskCreate(digitalread_task, "DigitalRead task", 128, NULL, 1, NULL);
+>>>>>>> d58c3b5... new code with reading only when asked
  // xTaskCreate(send_task, "Sender task", 128, NULL, 1, NULL);
   //xTaskCreate(Read_Temperature, "Read Temperature", 128, NULL, 1, NULL);
 
@@ -333,7 +340,11 @@ void configureSPI(GPIO_TypeDef* CS_GPIO_Port, uint16_t CS_Pin)
   CS_DISABLE(CS_GPIO_Port, CS_Pin);
 }
 
+<<<<<<< HEAD
 /* Function to unpack and store MAX31865 data */
+=======
+
+>>>>>>> d58c3b5... new code with reading only when asked
 
 void MAX31865_full_read(GPIO_TypeDef* CS_GPIO_Port, uint16_t CS_Pin, int LED, uint8_t *LEDinit,int CSnumber)
 {
@@ -425,6 +436,10 @@ void receive_task(void *pvArgs) {
 	uint8_t data_to_send;
 	uint8_t ok_to_send;
 	HAL_StatusTypeDef TransmitReturn;
+	uint32_t u_miso;
+	uint8_t u_byte_h = 0;
+	uint8_t u_byte_l = 0;
+	uint8_t u_mosi = 0x00;
 
 	for(;;) {
 
@@ -446,12 +461,59 @@ void receive_task(void *pvArgs) {
   			}
   			while (ok_to_send == 255) {
 
+<<<<<<< HEAD
   				int m;
   				for (m = 1; m < 11; m = m + 1){
   				hcan.pTxMsg->Data[0] = 00;
   				hcan.pTxMsg->Data[1] = m;
   				hcan.pTxMsg->Data[2] = 0x02;
   				hcan.pTxMsg->Data[3] = m;
+=======
+  				//int m;
+  				//for (m = 1; m < 2; m = m + 1){
+
+  				HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+  				vTaskDelay(pdMS_TO_TICKS(10));
+
+  				/// DIGITAL READ CODE
+  				CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+  				//HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
+  				HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
+  				CS_DISABLE(GPIOB, NCS12_Pin);
+  				u_byte_h = u_miso>>24;
+  				u_byte_l = u_miso>>8;
+  				//////////////
+
+//  					if(xQueueReceive(Global_Queue_Data_H, &Data_receive_h,200)){
+//  						sprintf(Byte, "\n\rByteH = %x\n\r", Data_receive_h);
+//  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+//
+//  							}
+//  									 else{
+//  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+//
+//  									  	 }
+//  					if(xQueueReceive(Global_Queue_Data_L, &Data_receive_l,200)){
+//  				        sprintf(Byte, "\n\rByteL = %x\n\r", Data_receive_l);
+//  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+//  					  							}
+//  					  									 else{
+//  					  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+//
+//  					  									  	 }
+  				hcan.pTxMsg->Data[0] = 01;
+  				//hcan.pTxMsg->Data[1] = Data_receive_h;
+  				hcan.pTxMsg->Data[1] = u_byte_h;
+  				hcan.pTxMsg->Data[2] = u_byte_l;
+
+  				//hcan.pTxMsg->Data[2] = Data_receive_l;
+  				hcan.pTxMsg->Data[3] = 0x00;
+  				hcan.pTxMsg->Data[4] = 0x00;
+  				hcan.pTxMsg->Data[5] = 0x00;
+  				hcan.pTxMsg->Data[6] = 0x00;
+  				hcan.pTxMsg->Data[7] = 0x00;
+  				//hcan.pTxMsg->Data[3] = m;
+>>>>>>> d58c3b5... new code with reading only when asked
 
   				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
   		  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 5) != HAL_OK) { //Try to receive
