@@ -144,7 +144,7 @@ int main(void)
 
 
   xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
-  xTaskCreate(digitalread_task, "DigitalRead task", 128, NULL, 1, NULL);
+ // xTaskCreate(digitalread_task, "DigitalRead task", 128, NULL, 1, NULL);
  // xTaskCreate(send_task, "Sender task", 128, NULL, 1, NULL);
 
   /* USER CODE END 2 */
@@ -266,6 +266,10 @@ void receive_task(void *pvArgs) {
 	uint8_t data_to_send;
 	uint8_t ok_to_send;
 	HAL_StatusTypeDef TransmitReturn;
+	uint32_t u_miso;
+	uint8_t u_byte_h = 0;
+	uint8_t u_byte_l = 0;
+	uint8_t u_mosi = 0x00;
 
 	for(;;) {
 
@@ -290,26 +294,39 @@ void receive_task(void *pvArgs) {
   				//int m;
   				//for (m = 1; m < 2; m = m + 1){
 
-  					if(xQueueReceive(Global_Queue_Data_H, &Data_receive_h,200)){
-  						sprintf(Byte, "\n\rByteH = %x\n\r", Data_receive_h);
-  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+  				///Digital Read CODE
+  				CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+  				//HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
+  				HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
+  				CS_DISABLE(GPIOB, NCS12_Pin);
+  				u_byte_h = u_miso>>24;
+  				u_byte_l = u_miso>>8;
+  				//////
 
-  							}
-  									 else{
-  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
 
-  									  	 }
-  					if(xQueueReceive(Global_Queue_Data_L, &Data_receive_l,200)){
-  				        sprintf(Byte, "\n\rByteL = %x\n\r", Data_receive_l);
-  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
-  					  							}
-  					  									 else{
-  					  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
 
-  					  									  	 }
+//  					if(xQueueReceive(Global_Queue_Data_H, &Data_receive_h,200)){
+//  						sprintf(Byte, "\n\rByteH = %x\n\r", Data_receive_h);
+//  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+//
+//  							}
+//  									 else{
+//  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+//
+//  									  	 }
+//  					if(xQueueReceive(Global_Queue_Data_L, &Data_receive_l,200)){
+//  				        sprintf(Byte, "\n\rByteL = %x\n\r", Data_receive_l);
+//  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+//  					  							}
+//  					  									 else{
+//  					  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+//
+//  					  									  	 }
   				hcan.pTxMsg->Data[0] = 01;
-  				hcan.pTxMsg->Data[1] = Data_receive_h;
-  				hcan.pTxMsg->Data[2] = Data_receive_l;
+  				hcan.pTxMsg->Data[1] = u_byte_h;
+  				hcan.pTxMsg->Data[2] = u_byte_l;
+  				//hcan.pTxMsg->Data[1] = Data_receive_h;
+  				//hcan.pTxMsg->Data[2] = Data_receive_l;
   				hcan.pTxMsg->Data[3] = 0x00;
   				hcan.pTxMsg->Data[4] = 0x00;
   				hcan.pTxMsg->Data[5] = 0x00;
@@ -492,12 +509,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x001;
+  hcan.pTxMsg->StdId = 0x003;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x00000001;
+  int filter_id = 0x00000003;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
