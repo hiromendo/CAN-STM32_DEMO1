@@ -270,7 +270,10 @@ void receive_task(void *pvArgs) {
 	uint16_t u_fault_condition;
 	uint8_t u_byte_h = 0;
 	uint8_t u_byte_l = 0;
-	uint16_t u_mosi = 0xFFFF; ///// this is the output code
+	uint8_t u_byte_h_config = 0;
+	uint8_t u_byte_l_config = 0;
+	uint16_t u_mosi = 0x0300; ///// this is the output code
+	uint16_t u_value = 0x0000;
 
 	for(;;) {
 
@@ -283,112 +286,192 @@ void receive_task(void *pvArgs) {
   		} else { //Succes!
 
   			data_holder = hcan.pRxMsg->Data[0];
+  			u_byte_h = hcan.pRxMsg->Data[1];
+  			u_byte_l = hcan.pRxMsg->Data[2];
+  			u_byte_h_config = hcan.pRxMsg->Data[3];
+  			u_byte_l_config = hcan.pRxMsg->Data[4];
   			//char buff[20];
-  			if(data_holder == 255){
-  				ok_to_send = 255;
+  			if(data_holder == 2){
+  				//ok_to_send = 255;
+				CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+				u_value=(u_byte_l<<8)+u_byte_l_config;
+				HAL_SPI_Transmit(&hspi2, &u_value, 1, TIMEOUT_VAL);
+				  	//HAL_SPI_Receive(&hspi2, &u_fault_condition, 1, TIMEOUT_VAL);
+				CS_DISABLE(GPIOB, NCS12_Pin);
+				//sprintf(Byte, "\n\rByteH = %x\n\r", u_fault_condition);
+			    //HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+			    //vTaskDelay(pdMS_TO_TICKS(1000));
+
+				hcan.pTxMsg->Data[0] = 0xCC; /// Acknowledgment
+				hcan.pTxMsg->Data[1] = 0x00;
+				hcan.pTxMsg->Data[2] = 0x00;
+				//hcan.pTxMsg->Data[1] = Data_receive_h;
+				//hcan.pTxMsg->Data[2] = Data_receive_l;
+				hcan.pTxMsg->Data[3] = 0x00;
+				hcan.pTxMsg->Data[4] = 0x00;
+				hcan.pTxMsg->Data[5] = 0x00;
+				hcan.pTxMsg->Data[6] = 0x00;
+				hcan.pTxMsg->Data[7] = 0x00;
+
+				TransmitReturn = HAL_CAN_Transmit(&hcan, 5); //Try to transmit and get result
+
+				if (TransmitReturn == HAL_ERROR) { //We got an error
+					/* Transmitting Error */
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to transmit", strlen("Failed to receive"), HAL_MAX_DELAY);
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+
+				} else if((TransmitReturn == HAL_TIMEOUT)){ //Timed out
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"Timeout", strlen("Timeout"), HAL_MAX_DELAY);
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+
+				} else if((TransmitReturn == HAL_OK)){ //Everything worked
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"Transmitting: ", strlen("Transmitting: "), HAL_MAX_DELAY);
+//
+//					data_to_send = hcan.pTxMsg->Data[3];
+//
+//					char trans_buff[20];
+//					sprintf(trans_buff, "%i", data_to_send);
+//					HAL_UART_Transmit(&huart1, (uint8_t*)trans_buff, strlen(trans_buff), HAL_MAX_DELAY);
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+
+				}
+
   			}
-  			else if( data_holder == 0xAA){
+  			else {
   				ok_to_send = 0;
+  				hcan.pTxMsg->Data[0] = 0xEE; /// Acknowledgment
+				hcan.pTxMsg->Data[1] = 0x00;
+				hcan.pTxMsg->Data[2] = 0x00;
+				//hcan.pTxMsg->Data[1] = Data_receive_h;
+				//hcan.pTxMsg->Data[2] = Data_receive_l;
+				hcan.pTxMsg->Data[3] = 0x00;
+				hcan.pTxMsg->Data[4] = 0x00;
+				hcan.pTxMsg->Data[5] = 0x00;
+				hcan.pTxMsg->Data[6] = 0x00;
+				hcan.pTxMsg->Data[7] = 0x00;
+
+				TransmitReturn = HAL_CAN_Transmit(&hcan, 5); //Try to transmit and get result
+
+				if (TransmitReturn == HAL_ERROR) { //We got an error
+					/* Transmitting Error */
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to transmit", strlen("Failed to receive"), HAL_MAX_DELAY);
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+
+				} else if((TransmitReturn == HAL_TIMEOUT)){ //Timed out
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"Timeout", strlen("Timeout"), HAL_MAX_DELAY);
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+
+				} else if((TransmitReturn == HAL_OK)){ //Everything worked
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"Transmitting: ", strlen("Transmitting: "), HAL_MAX_DELAY);
+//
+//					data_to_send = hcan.pTxMsg->Data[3];
+//
+//					char trans_buff[20];
+//					sprintf(trans_buff, "%i", data_to_send);
+//					HAL_UART_Transmit(&huart1, (uint8_t*)trans_buff, strlen(trans_buff), HAL_MAX_DELAY);
+//					HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+
+				}
   			}
-  			while (ok_to_send == 255) {
-
-  				//int m;
-  				//for (m = 1; m < 2; m = m + 1){
-
-//  				///Digital Read CODE
-//  				CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
-//  				//HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
-//  				HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
-//  				CS_DISABLE(GPIOB, NCS12_Pin);
-//  				u_byte_h = u_miso>>24;
-//  				u_byte_l = u_miso>>8;
-//  				//////
-
-  				  	///Digital Output CODE
-					CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
-  				  	HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
-  				  	HAL_SPI_Receive(&hspi2, &u_fault_condition, 2, TIMEOUT_VAL);
-  				  	CS_DISABLE(GPIOB, NCS12_Pin);
-  					sprintf(Byte, "\n\rByteH = %x\n\r", u_fault_condition);
-  			        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
-
-  				  	//////
-
-
-
-//  					if(xQueueReceive(Global_Queue_Data_H, &Data_receive_h,200)){
-//  						sprintf(Byte, "\n\rByteH = %x\n\r", Data_receive_h);
-//  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+//  			while (ok_to_send == 255) {
 //
-//  							}
-//  									 else{
-//  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+//  				//int m;
+//  				//for (m = 1; m < 2; m = m + 1){
 //
-//  									  	 }
-//  					if(xQueueReceive(Global_Queue_Data_L, &Data_receive_l,200)){
-//  				        sprintf(Byte, "\n\rByteL = %x\n\r", Data_receive_l);
-//  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
-//  					  							}
-//  					  									 else{
-//  					  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+////  				///Digital Read CODE
+////  				CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+////  				//HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
+////  				HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
+////  				CS_DISABLE(GPIOB, NCS12_Pin);
+////  				u_byte_h = u_miso>>24;
+////  				u_byte_l = u_miso>>8;
+////  				//////
 //
-//  					  									  	 }
-  				hcan.pTxMsg->Data[0] = 01;
-  				hcan.pTxMsg->Data[1] = u_byte_h;
-  				hcan.pTxMsg->Data[2] = u_byte_l;
-  				//hcan.pTxMsg->Data[1] = Data_receive_h;
-  				//hcan.pTxMsg->Data[2] = Data_receive_l;
-  				hcan.pTxMsg->Data[3] = 0x00;
-  				hcan.pTxMsg->Data[4] = 0x00;
-  				hcan.pTxMsg->Data[5] = 0x00;
-  				hcan.pTxMsg->Data[6] = 0x00;
-  				hcan.pTxMsg->Data[7] = 0x00;
-  				//hcan.pTxMsg->Data[3] = m;
-
-  				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-  		  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 5) != HAL_OK) { //Try to receive
-
-  		  			HAL_UART_Transmit(&huart1, (uint8_t *)"Receiving error", strlen("Receiving error"), HAL_MAX_DELAY);
-  		  			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-
-  		  		} else {
-  	  			data_holder = hcan.pRxMsg->Data[0];
-  	  			//char buff[20];
-  	  			if(data_holder == 255){
-  	  				ok_to_send = 255;
-  	  			}
-  	  			else if( data_holder == 0xAA){
-  	  				ok_to_send = 0;
-  	  				break;
-  	  			}
-  				//vTaskDelay(pdMS_TO_TICKS(100));
-  		  		}
-
-  				TransmitReturn = HAL_CAN_Transmit(&hcan, 5); //Try to transmit and get result
-
-  				if (TransmitReturn == HAL_ERROR) { //We got an error
-  				  	/* Transmitting Error */
-  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to transmit", strlen("Failed to receive"), HAL_MAX_DELAY);
-  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-
-  				} else if((TransmitReturn == HAL_TIMEOUT)){ //Timed out
-  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"Timeout", strlen("Timeout"), HAL_MAX_DELAY);
-  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-
-  				} else if((TransmitReturn == HAL_OK)){ //Everything worked
-  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"Transmitting: ", strlen("Transmitting: "), HAL_MAX_DELAY);
-
-  				  	data_to_send = hcan.pTxMsg->Data[3];
-
-  				  	char trans_buff[20];
-  				  	sprintf(trans_buff, "%i", data_to_send);
-  				  	HAL_UART_Transmit(&huart1, (uint8_t*)trans_buff, strlen(trans_buff), HAL_MAX_DELAY);
-  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-
-  				}
-  				HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-
-  				}
+//  				  	///Digital Output CODE
+//					CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+//  				  	HAL_SPI_Transmit(&hspi2, &u_mosi, 1, TIMEOUT_VAL);
+//  				  	//HAL_SPI_Receive(&hspi2, &u_fault_condition, 1, TIMEOUT_VAL);
+//  				  	CS_DISABLE(GPIOB, NCS12_Pin);
+//  					sprintf(Byte, "\n\rByteH = %x\n\r", u_fault_condition);
+//  			        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+//  			        vTaskDelay(pdMS_TO_TICKS(1000));
+//  				  	//////
+//
+//
+//
+////  					if(xQueueReceive(Global_Queue_Data_H, &Data_receive_h,200)){
+////  						sprintf(Byte, "\n\rByteH = %x\n\r", Data_receive_h);
+////  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+////
+////  							}
+////  									 else{
+////  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+////
+////  									  	 }
+////  					if(xQueueReceive(Global_Queue_Data_L, &Data_receive_l,200)){
+////  				        sprintf(Byte, "\n\rByteL = %x\n\r", Data_receive_l);
+////  				        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+////  					  							}
+////  					  									 else{
+////  					  											HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to read from Queue\n\r", strlen("Failed to read from Queue\n\r"), 0xFFFF);
+////
+////  					  									  	 }
+//  				hcan.pTxMsg->Data[0] = 01;
+//  				hcan.pTxMsg->Data[1] = u_byte_h;
+//  				hcan.pTxMsg->Data[2] = u_byte_l;
+//  				//hcan.pTxMsg->Data[1] = Data_receive_h;
+//  				//hcan.pTxMsg->Data[2] = Data_receive_l;
+//  				hcan.pTxMsg->Data[3] = 0x00;
+//  				hcan.pTxMsg->Data[4] = 0x00;
+//  				hcan.pTxMsg->Data[5] = 0x00;
+//  				hcan.pTxMsg->Data[6] = 0x00;
+//  				hcan.pTxMsg->Data[7] = 0x00;
+//  				//hcan.pTxMsg->Data[3] = m;
+//
+//  				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+//  		  		if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 5) != HAL_OK) { //Try to receive
+//
+//  		  			HAL_UART_Transmit(&huart1, (uint8_t *)"Receiving error", strlen("Receiving error"), HAL_MAX_DELAY);
+//  		  			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+//
+//  		  		} else {
+//  	  			data_holder = hcan.pRxMsg->Data[0];
+//  	  			//char buff[20];
+//  	  			if(data_holder == 255){
+//  	  				ok_to_send = 255;
+//  	  			}
+//  	  			else if( data_holder == 0xAA){
+//  	  				ok_to_send = 0;
+//  	  				break;
+//  	  			}
+//  				//vTaskDelay(pdMS_TO_TICKS(100));
+//  		  		}
+//
+//  				TransmitReturn = HAL_CAN_Transmit(&hcan, 5); //Try to transmit and get result
+//
+//  				if (TransmitReturn == HAL_ERROR) { //We got an error
+//  				  	/* Transmitting Error */
+//  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"Failed to transmit", strlen("Failed to receive"), HAL_MAX_DELAY);
+//  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+//
+//  				} else if((TransmitReturn == HAL_TIMEOUT)){ //Timed out
+//  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"Timeout", strlen("Timeout"), HAL_MAX_DELAY);
+//  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+//
+//  				} else if((TransmitReturn == HAL_OK)){ //Everything worked
+//  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"Transmitting: ", strlen("Transmitting: "), HAL_MAX_DELAY);
+//
+//  				  	data_to_send = hcan.pTxMsg->Data[3];
+//
+//  				  	char trans_buff[20];
+//  				  	sprintf(trans_buff, "%i", data_to_send);
+//  				  	HAL_UART_Transmit(&huart1, (uint8_t*)trans_buff, strlen(trans_buff), HAL_MAX_DELAY);
+//  				  	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+//
+//  				}
+//  				HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+//
+//  				}
 
   			//}
   			//sprintf(buff, "%i", data_holder);
@@ -397,7 +480,7 @@ void receive_task(void *pvArgs) {
   		//	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 
   		}
-  		//vTaskDelay(pdMS_TO_TICKS(1000));
+
 	}
 }
 
