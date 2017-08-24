@@ -266,10 +266,11 @@ void receive_task(void *pvArgs) {
 	uint8_t data_to_send;
 	uint8_t ok_to_send;
 	HAL_StatusTypeDef TransmitReturn;
-	uint32_t u_miso;
+	///uint32_t u_miso; /// this is for the DI code
+	uint16_t u_fault_condition;
 	uint8_t u_byte_h = 0;
 	uint8_t u_byte_l = 0;
-	uint8_t u_mosi = 0x00;
+	uint16_t u_mosi = 0xFFFF; ///// this is the output code
 
 	for(;;) {
 
@@ -294,14 +295,24 @@ void receive_task(void *pvArgs) {
   				//int m;
   				//for (m = 1; m < 2; m = m + 1){
 
-  				///Digital Read CODE
-  				CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
-  				//HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
-  				HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
-  				CS_DISABLE(GPIOB, NCS12_Pin);
-  				u_byte_h = u_miso>>24;
-  				u_byte_l = u_miso>>8;
-  				//////
+//  				///Digital Read CODE
+//  				CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+//  				//HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
+//  				HAL_SPI_Receive(&hspi2, &u_miso, 2, TIMEOUT_VAL);
+//  				CS_DISABLE(GPIOB, NCS12_Pin);
+//  				u_byte_h = u_miso>>24;
+//  				u_byte_l = u_miso>>8;
+//  				//////
+
+  				  	///Digital Output CODE
+					CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+  				  	HAL_SPI_Transmit(&hspi2, &u_mosi, 2, TIMEOUT_VAL);
+  				  	HAL_SPI_Receive(&hspi2, &u_fault_condition, 2, TIMEOUT_VAL);
+  				  	CS_DISABLE(GPIOB, NCS12_Pin);
+  					sprintf(Byte, "\n\rByteH = %x\n\r", u_fault_condition);
+  			        HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
+
+  				  	//////
 
 
 
@@ -493,7 +504,7 @@ static void MX_CAN_Init(void)
   hcan.pRxMsg = &RxMessage;
 
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 8;
+  hcan.Init.Prescaler = 2; //// 8 is 125Kbits, 4 is 250Kbits, 2 is 500Kbits
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SJW = CAN_SJW_1TQ;
   hcan.Init.BS1 = CAN_BS1_2TQ;
@@ -509,12 +520,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x003;
+  hcan.pTxMsg->StdId = 0x002;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x00000003;
+  int filter_id = 0x00000002;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
