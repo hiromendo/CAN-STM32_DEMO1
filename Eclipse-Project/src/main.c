@@ -138,6 +138,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_SPI2_Init();
 
+
+
   Global_Queue_Data_H = xQueueCreate(1,sizeof(uint8_t));
   Global_Queue_Data_L = xQueueCreate(1,sizeof(uint8_t));
   /* USER CODE BEGIN 2 */
@@ -259,6 +261,8 @@ void digitalread_task(void *pvArgs){
 
 	}
 }
+
+
 
 void receive_task(void *pvArgs) {
 
@@ -603,12 +607,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x002;
+  hcan.pTxMsg->StdId = 0x0C9;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x00000002;
+  int filter_id = 0x000000C9;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
@@ -672,6 +676,8 @@ static void MX_USART1_UART_Init(void)
 
 }
 
+
+
 /* USART2 init function */
 static void MX_USART2_UART_Init(void)
 {
@@ -730,7 +736,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CS1_Pin CS6_Pin */
-  GPIO_InitStruct.Pin = CS1_Pin|CS6_Pin|NCS12_Pin;
+  GPIO_InitStruct.Pin = CS1_Pin|CS6_Pin|NCS12_Pin|DO_CNFG;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -740,6 +746,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  HAL_GPIO_WritePin(GPIOB, DO_CNFG, GPIO_PIN_RESET);
 
 }
 
