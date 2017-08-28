@@ -137,7 +137,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_SPI2_Init();
-
+  RESET_DO_OUTPUT();
 
 
   Global_Queue_Data_H = xQueueCreate(1,sizeof(uint8_t));
@@ -280,6 +280,7 @@ void receive_task(void *pvArgs) {
 	uint32_t u_value = 0x00000000;
 	uint32_t u_fault_condition = 0x00000000;
 
+
 	for(;;) {
 
 		HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
@@ -346,7 +347,7 @@ void receive_task(void *pvArgs) {
   			}
   			else {
   				ok_to_send = 0;
-  				hcan.pTxMsg->Data[0] = 0xEE; /// Acknowledgment
+  				hcan.pTxMsg->Data[0] = 0xEE; /// ERROR Acknowledgment
 				hcan.pTxMsg->Data[1] = 0x00;
 				hcan.pTxMsg->Data[2] = 0x00;
 				//hcan.pTxMsg->Data[1] = Data_receive_h;
@@ -610,12 +611,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x0CA;
+  hcan.pTxMsg->StdId = 0x0CB;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x000000CA;
+  int filter_id = 0x000000CB;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
@@ -698,6 +699,15 @@ static void MX_USART2_UART_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
+}
+
+void RESET_DO_OUTPUT(void){
+
+	uint32_t u_value = 0x00000000;
+	CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
+	HAL_SPI_Transmit(&hspi2, &u_value, 2, TIMEOUT_VAL);
+	//HAL_SPI_Receive(&hspi2, &u_fault_condition, 2, TIMEOUT_VAL);
+	CS_DISABLE(GPIOB, NCS12_Pin);
 }
 
 /** Configure pins as 
