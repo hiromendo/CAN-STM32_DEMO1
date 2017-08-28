@@ -102,6 +102,13 @@ void digitalread_task(void *pvArgs);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
+//Functions that help send/receive text through serial
+void newLine();
+void clrScr();
+void printStr(char text_to_print[]);
+void printNum(int number_to_print);
+void readInput(char buffer_to_hold_text[], uint16_t size_of_input);
+
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -146,7 +153,7 @@ int main(void)
 
 
   xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
- // xTaskCreate(digitalread_task, "DigitalRead task", 128, NULL, 1, NULL);
+  //xTaskCreate(SerialRead_task, "SerialRead_task", 128, NULL, 1, NULL);
  // xTaskCreate(send_task, "Sender task", 128, NULL, 1, NULL);
 
   /* USER CODE END 2 */
@@ -214,6 +221,31 @@ uint16_t maxim_spi_16bit_transfer(uint16_t u_mosi)
 	return u_miso;
 }
 
+
+
+//Functions to help display/read text easier
+void newLine() { //Basically prints a new line and moves cursor all the way to the left
+	HAL_UART_Transmit(&huart2, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+}
+
+void clrScr() { // Clears the screen. Moves cursor to 0,0
+	HAL_UART_Transmit(&huart2, (uint8_t*)"\033[0;0H", strlen("\033[0;0H"), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"\033[2J", strlen("\033[2J"), HAL_MAX_DELAY);
+}
+
+void printStr(char str[]) { //Prints the string that is passed into it
+	HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+}
+
+void printNum (int num) { //Prints number that is passed here (max of 20 in length atm)
+	char buff[20];
+	sprintf(buff, "%i", num);
+	printStr(buff);
+}
+void readInput(char buff[], uint16_t size) { //Reads user input into buffer that is passed
+	HAL_UART_Receive(&huart2, buff, size, HAL_MAX_DELAY);
+}
+
 void digitalread_task(void *pvArgs){
 	uint32_t u_miso;
 	uint8_t u_byte_h = 0;
@@ -262,6 +294,33 @@ void digitalread_task(void *pvArgs){
 	}
 }
 
+void SerialRead_task(void *pvArgs) {
+
+	char input_buff[1] = {0};
+
+	for(;;) {
+		///if(xSemaphoreTake(choice_mutex, pdMS_TO_TICKS(500))) { //Only run when choice_mutex is available
+			clrScr();
+
+			//display_main_menu();
+
+			readInput(input_buff, 1); //Get users choice here
+			printStr(input_buff); //Display users own input
+
+			if(input_buff[0] == '0') { //Continuous read mode
+				printStr("Got 0"); //Error checking (possible to get specific error)
+
+			} else if(input_buff[0] == '1') { //Single read mode
+				printStr("Got 1"); //Error checking (possible to get specific error)
+			}
+
+			else { //If invalid number is entered
+				//xSemaphoreGive(choice_mutex); //Give mutex, so task can grab it again (avoids deadlock)
+
+			}
+		//}
+	}
+}
 
 
 void receive_task(void *pvArgs) {
@@ -321,6 +380,10 @@ void receive_task(void *pvArgs) {
 				hcan.pTxMsg->Data[6] = 0x00;
 				hcan.pTxMsg->Data[7] = 0x00;
 
+				ok_to_send = 255;
+
+				while (ok_to_send == 255) {
+
 				TransmitReturn = HAL_CAN_Transmit(&hcan, 5); //Try to transmit and get result
 
 				if (TransmitReturn == HAL_ERROR) { //We got an error
@@ -344,7 +407,26 @@ void receive_task(void *pvArgs) {
 
 				}
 
+				if(HAL_CAN_Receive(&hcan, CAN_FIFO0, 5) != HAL_OK) { //Try to receive
+
+					HAL_UART_Transmit(&huart1, (uint8_t *)"Receiving error", strlen("Receiving error"), HAL_MAX_DELAY);
+					HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+
+				} else {
+				data_holder = hcan.pRxMsg->Data[0];
+				//char buff[20];
+				if(data_holder == 255){
+					ok_to_send = 255;
+				}
+				else if( data_holder == 0xAA){
+					ok_to_send = 0;
+					break;
+				}
+
+				}
   			}
+  			}
+
   			else {
   				ok_to_send = 0;
   				hcan.pTxMsg->Data[0] = 0xEE; /// ERROR Acknowledgment
@@ -381,6 +463,11 @@ void receive_task(void *pvArgs) {
 
 				}
   			}
+
+  		}
+
+	}
+}
 //  			while (ok_to_send == 255) {
 //
 //  				//int m;
@@ -487,10 +574,7 @@ void receive_task(void *pvArgs) {
   		//	HAL_UART_Transmit(&huart1, (uint8_t*)buff, strlen(buff), HAL_MAX_DELAY);
   		//	HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 
-  		}
 
-	}
-}
 
 void send_task(void *pvArgs) {
 
@@ -611,12 +695,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x0CB;
+  hcan.pTxMsg->StdId = 0x0C9;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x000000CB;
+  int filter_id = 0x000000C9;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
@@ -687,7 +771,7 @@ static void MX_USART2_UART_Init(void)
 {
 
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 500000;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
