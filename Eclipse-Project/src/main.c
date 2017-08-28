@@ -271,13 +271,14 @@ void receive_task(void *pvArgs) {
 	uint8_t ok_to_send;
 	HAL_StatusTypeDef TransmitReturn;
 	///uint32_t u_miso; /// this is for the DI code
-	uint16_t u_fault_condition;
+
 	uint8_t u_byte_h = 0;
 	uint8_t u_byte_l = 0;
 	uint8_t u_byte_h_config = 0;
 	uint8_t u_byte_l_config = 0;
 	uint16_t u_mosi = 0x0300; ///// this is the output code
-	uint16_t u_value = 0x0000;
+	uint32_t u_value = 0x00000000;
+	uint32_t u_fault_condition = 0x00000000;
 
 	for(;;) {
 
@@ -296,11 +297,13 @@ void receive_task(void *pvArgs) {
   			u_byte_l_config = hcan.pRxMsg->Data[4];
   			//char buff[20];
   			if(data_holder == 2){
+
+  				///This is the DO output command
   				//ok_to_send = 255;
 				CS_ENABLE(GPIOB, NCS12_Pin);	//NCS = 0
-				u_value=(u_byte_l<<8)+u_byte_l_config;
-				HAL_SPI_Transmit(&hspi2, &u_value, 1, TIMEOUT_VAL);
-				  	//HAL_SPI_Receive(&hspi2, &u_fault_condition, 1, TIMEOUT_VAL);
+				u_value=(u_byte_l<<24) + (u_byte_l_config<<16) + (u_byte_h<<8) + u_byte_h_config;
+				HAL_SPI_Transmit(&hspi2, &u_value, 2, TIMEOUT_VAL);
+				//HAL_SPI_Receive(&hspi2, &u_fault_condition, 2, TIMEOUT_VAL);
 				CS_DISABLE(GPIOB, NCS12_Pin);
 				//sprintf(Byte, "\n\rByteH = %x\n\r", u_fault_condition);
 			    //HAL_UART_Transmit(&huart1, (uint8_t *)Byte, 30, TIMEOUT_VAL);
@@ -607,12 +610,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x0C9;
+  hcan.pTxMsg->StdId = 0x0CA;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x000000C9;
+  int filter_id = 0x000000CA;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
