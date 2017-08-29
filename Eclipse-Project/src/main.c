@@ -98,6 +98,7 @@ static void MX_SPI2_Init(void);
 void receive_task(void *pvArgs);
 void send_task(void *pvArgs);
 void digitalread_task(void *pvArgs);
+void SerialRead_task(void *pvArgs);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -152,8 +153,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
-  xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
-  //xTaskCreate(SerialRead_task, "SerialRead_task", 128, NULL, 1, NULL);
+ // xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
+  xTaskCreate(SerialRead_task, "SerialRead_task", 128, NULL, 1, NULL);
  // xTaskCreate(send_task, "Sender task", 128, NULL, 1, NULL);
 
   /* USER CODE END 2 */
@@ -246,6 +247,8 @@ void readInput(char buff[], uint16_t size) { //Reads user input into buffer that
 	HAL_UART_Receive(&huart2, buff, size, HAL_MAX_DELAY);
 }
 
+
+
 void digitalread_task(void *pvArgs){
 	uint32_t u_miso;
 	uint8_t u_byte_h = 0;
@@ -296,21 +299,29 @@ void digitalread_task(void *pvArgs){
 
 void SerialRead_task(void *pvArgs) {
 
-	char input_buff[1] = {0};
+	char input_buff[32];
+	uint8_t data[]="00";
 
 	for(;;) {
 		///if(xSemaphoreTake(choice_mutex, pdMS_TO_TICKS(500))) { //Only run when choice_mutex is available
 			clrScr();
-
+			printStr("We are in the serial read mode");
+			printStr("Got 0");
+			printStr("Got 1");     //Error checking (possible to get specific error)
 			//display_main_menu();
-
-			readInput(input_buff, 1); //Get users choice here
+			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+			//setvbuf(stdin, NULL, _IONBF, 0);
+			readInput(input_buff, 2); //Get users choice here
+			//readInput(input_buff, 4); //Get users choice here
+			//HAL_UART_Receive(&huart2, data, 2, HAL_MAX_DELAY);
 			printStr(input_buff); //Display users own input
 
 			if(input_buff[0] == '0') { //Continuous read mode
+				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 				printStr("Got 0"); //Error checking (possible to get specific error)
 
 			} else if(input_buff[0] == '1') { //Single read mode
+				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 				printStr("Got 1"); //Error checking (possible to get specific error)
 			}
 
@@ -318,6 +329,7 @@ void SerialRead_task(void *pvArgs) {
 				//xSemaphoreGive(choice_mutex); //Give mutex, so task can grab it again (avoids deadlock)
 
 			}
+			vTaskDelay(pdMS_TO_TICKS(1000));
 		//}
 	}
 }
@@ -695,12 +707,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x0C9;
+  hcan.pTxMsg->StdId = 0x0CB;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x000000C9;
+  int filter_id = 0x000000CB;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
