@@ -1,3 +1,5 @@
+
+// TODO Tor: consider removing this one, you don't want your code to belong to ST
 /**
   ******************************************************************************
   * File Name          : main.c
@@ -49,22 +51,19 @@
 #include "main.h"
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
-#include "string.h"
-
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan;
-
-SPI_HandleTypeDef hspi2;
-
-UART_HandleTypeDef huart1;
-UART_HandleTypeDef huart2;
+#include "string.h"		// TODO Tor: used?
 
 /* SPI TIMEOUT Value*/
 #define TIMEOUT_VAL 60
+
+/* Private variables ---------------------------------------------------------*/
+static CAN_HandleTypeDef hcan;
+
+static SPI_HandleTypeDef hspi2;
+
+static UART_HandleTypeDef huart1;
+static UART_HandleTypeDef huart2;
+
 char Byte[30]; //array to print RTD resistance
 
 /* USER CODE BEGIN PV */
