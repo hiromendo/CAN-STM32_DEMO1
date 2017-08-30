@@ -153,8 +153,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
- xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
-//  xTaskCreate(SerialRead_task, "SerialRead_task", 128, NULL, 1, NULL); /// THIS IS FOR THE AUTOMATIC ID DETECTION/////
+ //xTaskCreate(receive_task, "Receiver task", 128, NULL, 1, NULL);
+  xTaskCreate(SerialRead_task, "SerialRead_task", 128, NULL, 1, NULL); /// THIS IS FOR THE AUTOMATIC ID DETECTION/////
 
 
 
@@ -190,6 +190,10 @@ void clrScr() { // Clears the screen. Moves cursor to 0,0
 
 void printStr(char str[]) { //Prints the string that is passed into it
 	HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+}
+/// need to find nice names for these
+void sendID(char str[]) { //Prints the string that is passed into it
+	HAL_UART_Transmit(&huart2, (uint8_t*)str, 2, HAL_MAX_DELAY);
 }
 
 void printNum (int num) { //Prints number that is passed here (max of 20 in length atm)
@@ -252,30 +256,42 @@ void digitalread_task(void *pvArgs){
 }
 
 ///// THIS IS FOR THE AUTOMATIC ID CODE NOT USED YET//////////
+/// the ID will be two bytes in hex in ASCII character
 void SerialRead_task(void *pvArgs) {
 
-	char input_buff[32];
+	char input_buff[3];
 	uint8_t data[]="00";
+	uint32_t id;
+	char string[32];
 
 	for(;;) {
 		///if(xSemaphoreTake(choice_mutex, pdMS_TO_TICKS(500))) { //Only run when choice_mutex is available
 			clrScr();
 			printStr("We are in the serial read mode");
-			printStr("Got 0");
-			printStr("Got 1");     //Error checking (possible to get specific error)
+			//printStr("Got 0");
+			//printStr("Got 1");     //Error checking (possible to get specific error)
 			//display_main_menu();
 			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 			//setvbuf(stdin, NULL, _IONBF, 0);
 			readInput(input_buff, 2); //Get users choice here
 			//readInput(input_buff, 4); //Get users choice here
 			//HAL_UART_Receive(&huart2, data, 2, HAL_MAX_DELAY);
-			printStr(input_buff); //Display users own input
 
-			if(input_buff[0] == '0') { //Continuous read mode
+			//printStr(input_buff); //Display users own input
+			input_buff[2] = 0;
+			id = strtol(input_buff, 0, 16);
+			id++;
+			sprintf(string, "%x", id); /// need to optimize it with a less resourceful function
+			printStr(string);
+
+			sendID(string);
+
+
+			if(id == 0) { //Continuous read mode
 				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 				printStr("Got 0"); //Error checking (possible to get specific error)
 
-			} else if(input_buff[0] == '1') { //Single read mode
+			} else if(id == 1) { //Single read mode
 				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 				printStr("Got 1"); //Error checking (possible to get specific error)
 			}
@@ -510,12 +526,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x0CB;
+  hcan.pTxMsg->StdId = 0x0CA;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x000000CB;
+  int filter_id = 0x000000CA;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
@@ -589,7 +605,7 @@ static void MX_USART2_UART_Init(void)
   huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Parity = UART_PARITY_NONE; /// Look into CRC for the checking the ID
   huart2.Init.Mode = UART_MODE_TX_RX;
   huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
