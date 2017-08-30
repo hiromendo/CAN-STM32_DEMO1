@@ -350,7 +350,7 @@ static void MX_CAN_Init(void)
   hcan.pRxMsg = &RxMessage;
 
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 8;
+  hcan.Init.Prescaler = 2; /// 2 is for 500Kbit/s and 8 is for 125Kbit/s baud rate
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SJW = CAN_SJW_1TQ;
   hcan.Init.BS1 = CAN_BS1_2TQ;
@@ -366,12 +366,12 @@ static void MX_CAN_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  hcan.pTxMsg->StdId = 0x003;
+  hcan.pTxMsg->StdId = 0x005;
   hcan.pTxMsg->IDE   = CAN_ID_STD;//values defined in different hal libraries
   hcan.pTxMsg->RTR   = CAN_RTR_DATA;//values defined in different hal libraries
   hcan.pTxMsg->DLC   = 8;//1-9 // how many data frames in CAN
 
-  int filter_id = 0x00000003;
+  int filter_id = 0x00000005;
   int filter_mask = 0x1FFFFFFF;
 
   /*##-2- Configure the CAN Filter ###########################################*/
