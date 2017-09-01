@@ -50,6 +50,7 @@
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
 #include "string.h"
+#include "stdio.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -194,6 +195,8 @@ void printStr(char str[]) { //Prints the string that is passed into it
 /// need to find nice names for these
 void sendID(char str[]) { //Prints the string that is passed into it
 	HAL_UART_Transmit(&huart2, (uint8_t*)str, 2, HAL_MAX_DELAY);
+
+
 }
 
 void printNum (int num) { //Prints number that is passed here (max of 20 in length atm)
@@ -204,6 +207,9 @@ void printNum (int num) { //Prints number that is passed here (max of 20 in leng
 void readInput(char buff[], uint16_t size) { //Reads user input into buffer that is passed
 	HAL_UART_Receive(&huart2, buff, size, HAL_MAX_DELAY);
 }
+
+
+
 /////////////////////////////////////////////////////////////
 
 
@@ -262,12 +268,14 @@ void SerialRead_task(void *pvArgs) {
 	char input_buff[3];
 	uint8_t data[]="00";
 	uint32_t id;
+	uint32_t id_reverse;
 	char string[32];
+    char str[20] = "Hello World";
 
 	for(;;) {
 		///if(xSemaphoreTake(choice_mutex, pdMS_TO_TICKS(500))) { //Only run when choice_mutex is available
 			clrScr();
-			printStr("We are in the serial read mode");
+			printStr("We are in the serial read mode\n\r");
 			//printStr("Got 0");
 			//printStr("Got 1");     //Error checking (possible to get specific error)
 			//display_main_menu();
@@ -276,24 +284,30 @@ void SerialRead_task(void *pvArgs) {
 			readInput(input_buff, 2); //Get users choice here
 			//readInput(input_buff, 4); //Get users choice here
 			//HAL_UART_Receive(&huart2, data, 2, HAL_MAX_DELAY);
+			printStr("This is what we got from the buffer\n\r");
+			printStr(input_buff); //Display users own input
+			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
+			input_buff[2] = 0; /// add a 0 to it for strtol
+			id = strtol(input_buff, NULL , 16);
+			id++;  // add 1 to the id
 
-			//printStr(input_buff); //Display users own input
-			input_buff[2] = 0;
-			id = strtol(input_buff, 0, 16);
-			id++;
-			sprintf(string, "%x", id); /// need to optimize it with a less resourceful function
+			sprintf(string, "%x", id); /// need to optimize it with a less resourceful function convert hex to string
+			printStr("This is what we send\n\r");
+
+			//printStr(str);
+			HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
 			printStr(string);
-
+			//sendID(c1);
 			sendID(string);
 
 
 			if(id == 0) { //Continuous read mode
 				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-				printStr("Got 0"); //Error checking (possible to get specific error)
+				/////printStr("Got 0"); //Error checking (possible to get specific error)
 
 			} else if(id == 1) { //Single read mode
 				HAL_UART_Transmit(&huart1, (uint8_t*)"\n\r", strlen("\n\r"), HAL_MAX_DELAY);
-				printStr("Got 1"); //Error checking (possible to get specific error)
+				////printStr("Got 1"); //Error checking (possible to get specific error)
 			}
 
 			else { //If invalid number is entered
@@ -581,7 +595,7 @@ static void MX_USART1_UART_Init(void)
 {
 
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 500000;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
